@@ -64,7 +64,7 @@ def init_model():
     parser.add_argument("--lr", default=0.0003, type=float,
                         help="The learning rate for training.")
 
-    parser.add_argument("--save_results_path", type=str, default='outputs_3', help="The path to save results.")
+    parser.add_argument("--save_results_path", type=str, default='outputs_check', help="The path to save results.")
     
     parser.add_argument("--pretrain_dir", default='pretrain_models', type=str, 
                         help="The output directory where the model predictions and checkpoints will be written.") 

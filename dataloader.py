@@ -1,7 +1,7 @@
 from util import *
 import torch.utils.data as util_data
 from torch.utils.data import Dataset
-from data_augumentation import *
+
 
 
 def set_seed(seed):
@@ -18,7 +18,7 @@ class Data:
         set_seed(args.seed)
 
         # 载入数据集的关键信息
-        max_seq_lengths = {'clinc':30, 'banking':55, 'snips': 35}
+        max_seq_lengths = {'clinc':30, 'banking':55, 'snips': 35, "HWU64":25}
         args.max_seq_length = max_seq_lengths[args.dataset]
 
         # 随机选取已知类和未知类(得到IND和OOD的类别list)
@@ -43,7 +43,7 @@ class Data:
             self.known_label_list = list(np.random.choice(np.array(self.known_label_list), self.n_known_cls, replace=False))
             print("revised: the numbers of IND labels:", len(self.known_label_list), self.n_known_cls)
 
-        self.num_labels = self.n_unknown_cls
+        self.num_labels = int(len(self.unknown_label_list))*2
 
         # 载入数据集(tsv文件的表格，二维列表形式)
         train_sets = self.get_datasets(self.data_dir, 'train')
@@ -145,6 +145,38 @@ class Data:
         return data
 
 
+    def get_embedding(self, labelled_examples, label_list, args, mode="train"):
+        tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
+        features = convert_examples_to_features(labelled_examples, label_list, args.max_seq_length,
+                                                           tokenizer)
+        data=[]
+        for f in features:
+            results={
+                "input_ids":f.input_ids,
+                "input_mask":f.input_mask,
+                "segment_ids":f.segment_ids,
+                "label_id":f.label_id
+            }
+            #print("input_ids",f.input_ids)
+            #print("input_mask",f.input_mask)
+            #print("segment_ids",f.segment_ids)
+            #print("label_id",f.label_id)
+
+            data.append(results)
+
+        #input_ids = torch.tensor([f.input_ids for f in features], dtype=torch.long)
+        #input_mask = torch.tensor([f.input_mask for f in features], dtype=torch.long)
+        #segment_ids = torch.tensor([f.segment_ids for f in features], dtype=torch.long)
+        #label_ids = torch.tensor([f.label_id for f in features], dtype=torch.long)
+        #print(input_ids)
+        #exit()
+
+        #data = TensorDataset(input_ids, input_mask, segment_ids, label_ids)
+
+        return data
+
+
+
     def get_loader(self, labelled_examples, label_list, args, mode="train"):
         tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=True)
         features = convert_examples_to_features(labelled_examples, label_list, args.max_seq_length, tokenizer)
@@ -205,12 +237,60 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
     label_map = {}
     for i, label in enumerate(label_list):
         label_map[label] = i
-
+    '''
     if len(label_list)==15:
         label_map = {'smart_home': 0, 'spending_history': 1, 'tire_pressure': 2, 'lost_luggage': 3, 'cancel': 4, 'reset_settings': 5, 'where_are_you_from': 6, 'book_flight': 7, 'bill_due': 8,
                      'accept_reservations': 9, 'expiration_date': 10, 'timezone': 11, 'new_card': 12, 'cancel_reservation': 13, 'income': 14}
         print(label_map)
+    '''
+    '''
+    if len(label_list) == 23:
+        label_map = { "top_up_by_bank_transfer_charge": 0,
+"card_acceptance": 1,
+"Refund_not_showing_up":2,
+"card_not_working":3,
+"transfer_fee_charged":4,
+"verify_top_up":5,
+"unable_to_verify_identity":6,
+"beneficiary_not_allowed":7,
+"card_linking":8,
+"supported_cards_and_currencies":9,
+"getting_spare_card":10,
+"transfer_into_account":11,
+"receiving_money":12,
+"card_payment_fee_charged":13,
+"automatic_top_up":14,
+"declined_transfer":15,
+"direct_debit_payment_not_recognised":16,
+"pending_transfer":17,
+"failed_transfer":18,
+"card_delivery_estimate":19,
+"cancel_transfer":20,
+"topping_up_by_card":21,
+"exchange_rate":22,
+}
 
+        print(label_map)
+
+    elif len(label_list) == 15:
+        label_map = {"getting_spare_card": 0,
+                     "card_not_working": 1,
+                     "exchange_rate": 2,
+                     "card_acceptance": 3,
+                     "topping_up_by_card": 4,
+                     "declined_transfer": 5,
+                     "supported_cards_and_currencies": 6,
+                     "direct_debit_payment_not_recognised": 7,
+                     "failed_transfer": 8,
+                     "cancel_transfer": 9,
+                     "card_payment_fee_charged": 10,
+                     "Refund_not_showing_up": 11,
+                     "verify_top_up": 12,
+                     "beneficiary_not_allowed": 13,
+                     "transfer_fee_charged": 14}
+
+        print(label_map)
+    '''
     features = []
     content_list = examples.train_x
     label_list = examples.train_y
@@ -244,6 +324,3 @@ def convert_examples_to_features(examples, label_list, max_seq_length, tokenizer
                           segment_ids=segment_ids,
                           label_id=label_id))
     return features
-
-
-
