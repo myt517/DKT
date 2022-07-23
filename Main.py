@@ -6,10 +6,7 @@ from dataloader import *
 from pretrain import *
 from util import *
 from contrastive_loss import *
-from baseline_0.kmeans import *
-from baseline_0.CC import *
-from pretrain_kt import *
-from KT import *
+
 
 
 class ModelManager:
@@ -61,8 +58,6 @@ class ModelManager:
         self.criterion_Maskinstance = MaskInstanceLoss(args.train_batch_size, args.instance_temperature, self.device).to(
             self.device)
         self.criterion_instance = InstanceLoss(args.train_batch_size, args.instance_temperature, self.device).to(
-            self.device)
-        self.KNN_Instance = KNN_InstanceLoss(args.train_batch_size, args.instance_temperature, self.device, 1).to(
             self.device)
         self.criterion_cluster = ClusterLoss(self.num_labels, args.cluster_temperature, self.device).to(
             self.device)
@@ -206,65 +201,11 @@ class ModelManager:
         results["SC"] = score
         print(results)
 
-        min_d, max_d, mean_d, intra_list = intra_distance(x_feats, y_true, self.num_labels)
-        print(min_d, max_d, mean_d, intra_list)
-        #self.analysis_results["intra_distance"] = mean_d
-        min_d, max_d, mean_d, inter_list = inter_distance(x_feats, y_true, self.num_labels)
-        print(min_d, max_d, mean_d, inter_list)
-
-        a = []
-
-        for i in range(self.num_labels):
-            a.append(inter_list[i]/intra_list[i])
-
-
-        '''
-        
-        hard_class_list = select_hard(y_true, y_pred)
-        print(hard_class_list)
-        hard_class_list.sort()
-        print(hard_class_list)
-
-        min_d, max_d, mean_d, intra_list = intra_distance(x_feats, y_true, self.num_labels)
-        print(min_d, max_d, mean_d, intra_list)
-        #self.analysis_results["intra_distance"] = mean_d
-        min_d, max_d, mean_d, inter_list = inter_distance(x_feats, y_true, self.num_labels)
-        print(min_d, max_d, mean_d, inter_list)
-
-        hard_class_list = select_hard_2(intra_list, inter_list)
-        print(hard_class_list)
-        #hard_class_list.sort()
-        #print(hard_class_list)
-        a = [1.2720418840483885, 1.9555266750992137, 2.0659313732064493, 2.1558232027445836, 2.268445805201286]
-        for i in range(len(a)):
-            print(hard_class_list.index(a[i]))
-
-        exit()
-        '''
-        #self.analysis_results["inter_distance"] = mean_d
-
-
         ind, _ = hungray_aligment(y_true, y_pred)
         map_ = {i[0]: i[1] for i in ind}
         y_pred_aligned = np.array([map_[idx] for idx in y_pred])
 
         cm = confusion_matrix(y_true, y_pred_aligned)
-        #cm = cm/40
-        print(cm)
-        exit()
-
-        #self.pca_visualization(x_feats, y_true, y_pred)
-
-        #file = "./outputs/results.csv"
-        #with open(file, "w") as f:
-        #    f.write(results)
-        #    f.write("ground_truth\t")
-        #    f.write(y_true)
-        #    f.write("prediction\t")
-        #    f.write(y_pred)
-        #f.close()
-        #print(y_true)
-        #print(len(y_pred[y_pred>0.5]))
 
         self.test_results = results
 
@@ -482,7 +423,7 @@ class ModelManager:
         keys = list(results.keys())
         values = list(results.values())
         
-        file_name = 'reselts_check_v3_K1.csv'
+        file_name = 'reselts_check_v1.csv'
         results_path = os.path.join(args.save_results_path, file_name)
         
         if not os.path.exists(results_path):
@@ -557,54 +498,4 @@ if __name__ == '__main__':
             #manager.visualize_training(args, data)
 
             manager.save_results(args)
-
-        if args.method == "kmeans":
-            manager_Kmeans = KmeansModelManager(args, data)
-            #manager_Kmeans.load_models(args)
-            manager_Kmeans.BertForKmeans(args, data)
-            manager_Kmeans.save_results_2(args)
-
-
-        if args.method == "KT":
-            print('Pre-training begin...')
-            #manager_p = PretrainModelManager_KT(args, data)
-            #manager_p.train(args, data)
-            print('Pre-training finished!')
-            #exit()
-
-            manager = ModelManager_KT(args, data)
-            print('Training begin...')
-            manager.train(args, data)
-            print('Training finished!')
-
-            print('Evaluation begin...')
-            manager.evaluation(args, data)
-            print('Evaluation finished!')
-            # manager.visualize_training(args, data)
-
-            manager.save_results(args)
-
-    else:
-        if args.method == "kmeans":
-            manager_Kmeans = KmeansModelManager(args, data)
-            manager_Kmeans.BertForKmeans(args, data)
-            manager_Kmeans.save_results(args)
-
-        if args.method == "contrastive-clustering":
-            manager_CC = CCModelManager(args, data)
-            print('Training begin...')
-            manager_CC.train(args, data)
-            print('Training finished!')
-            print('Evaluation begin...')
-            manager_CC.evaluation(args, data)
-            print('Evaluation finished!')
-            manager_CC.visualize_training(args, data)
-            manager_CC.save_results(args)
-
-        #manager = ModelManager(args, data)
-
-
-
-
-
 

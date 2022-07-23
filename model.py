@@ -280,9 +280,6 @@ class BertForModel_kt(BertPreTrainedModel):
         self.activation = nn.ReLU()
         self.dropout = nn.Dropout(config.hidden_dropout_prob) # 以上为编码器pooling层
 
-        self.classifier = nn.Linear(config.hidden_size, self.num_labels)
-
-        '''
         self.instance_projector = nn.Sequential(
             nn.Linear(config.hidden_size, config.hidden_size),
             nn.ReLU(),
@@ -295,8 +292,6 @@ class BertForModel_kt(BertPreTrainedModel):
             nn.Linear(config.hidden_size, self.num_labels),
         ) # class(cluster)-level 投影
 
-        self.softmax = nn.Softmax(dim=1)
-        '''
         self.softmax = nn.Softmax(dim=1)
         self.apply(self.init_bert_weights)
 
@@ -314,7 +309,7 @@ class BertForModel_kt(BertPreTrainedModel):
                 pooled_output = self.dropout(pooled_output)
 
                 # 交叉熵损失函数
-                logits = self.classifier(pooled_output)
+                logits = self.cluster_projector(pooled_output)
                 ce_loss = nn.CrossEntropyLoss()(logits, label_ids)
 
                 # 监督对比学习损失
@@ -330,7 +325,12 @@ class BertForModel_kt(BertPreTrainedModel):
                 pooled_output_02 = self.dense(pooled_output_02)
                 pooled_output_02 = self.activation(pooled_output_02)
                 pooled_output_02 = self.dropout(pooled_output_02)
-                sup_cont_loss = nt_xent(pooled_output, pooled_output_02, label_mask, cuda=True)
+
+                z_i = self.instance_projector(pooled_output)
+                z_j = self.instance_projector(pooled_output_02)
+
+
+                sup_cont_loss = nt_xent(z_i, z_j, label_mask, cuda=True)
 
                 loss = ce_loss + sup_cont_loss
 
@@ -395,7 +395,7 @@ class BertForModel_kt(BertPreTrainedModel):
                 pooled_output = self.activation(pooled_output)
                 pooled_output = self.dropout(pooled_output)
 
-                logits = self.classifier(pooled_output)
+                logits = self.cluster_projector(pooled_output)
 
                 return pooled_output, logits
 
@@ -465,9 +465,7 @@ class BertForModel_kt(BertPreTrainedModel):
             pooled_output = self.activation(pooled_output)
             pooled_output = self.dropout(pooled_output)
 
-            #z = normalize(self.instance_projector(pooled_output), dim=1)
-            c = self.classifier(pooled_output)
-            #c = self.classifier(feats)
+            c = self.cluster_projector(pooled_output)
             c = self.softmax(c)
 
             return c, pooled_output
